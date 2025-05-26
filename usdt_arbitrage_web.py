@@ -1,3 +1,4 @@
+
 import os
 import time
 import ccxt
@@ -32,24 +33,28 @@ def get_price(exchange, symbol):
     return ticker['bid'], ticker['ask']
 
 def monitor_arbitrage():
+    FEE_RATE = 0.001  # 每邊 0.1% 手續費
+
     while True:
         try:
             if SYMBOL in okx.symbols and SYMBOL in kucoin.symbols:
                 kucoin_bid, kucoin_ask = get_price(kucoin, SYMBOL)
                 okx_bid, okx_ask = get_price(okx, SYMBOL)
 
-                buy_price = kucoin_ask
-                sell_price = okx_bid
+                buy_price = kucoin_ask * (1 + FEE_RATE)
+                sell_price = okx_bid * (1 - FEE_RATE)
                 diff = sell_price - buy_price
+                profit_ratio = (diff / buy_price) * 100
 
-                print(f"[套利監控] KuCoin 買: {buy_price:.2f} / OKX 賣: {sell_price:.2f} → 價差: {diff:.2f} USDT")
+                print(f"[套利監控] KuCoin 買(含費): {buy_price:.2f} / OKX 賣(含費): {sell_price:.2f} → 價差: {diff:.2f} USDT | 利潤率: {profit_ratio:.2f}%")
 
                 if diff > THRESHOLD:
                     msg = (
-                        f"🚨 {SYMBOL} 套利機會！\n"
-                        f"📥 KuCoin 買價: {buy_price:.2f} USDT\n"
-                        f"📤 OKX 賣價: {sell_price:.2f} USDT\n"
-                        f"💰 價差：{diff:.2f} USDT"
+                        f"🚨 {SYMBOL} 套利機會（含手續費）\n"
+                        f"📥 KuCoin 買價（含費）: {buy_price:.2f} USDT\n"
+                        f"📤 OKX 賣價（含費）: {sell_price:.2f} USDT\n"
+                        f"💰 淨價差：{diff:.2f} USDT\n"
+                        f"📈 利潤率：{profit_ratio:.2f}%"
                     )
                     send_telegram(msg)
         except Exception as e:
@@ -57,11 +62,12 @@ def monitor_arbitrage():
 
         time.sleep(15)
 
+# Flask Web Server
 app = Flask(__name__)
 
 @app.route("/")
 def index():
-    return f"{SYMBOL} Arbitrage Monitor Running | Threshold = {THRESHOLD} USDT"
+    return f"{SYMBOL} Arbitrage Monitor Running | Threshold = {THRESHOLD} USDT (含 0.1% 手續費)"
 
 if __name__ == "__main__":
     threading.Thread(target=monitor_arbitrage, daemon=True).start()
