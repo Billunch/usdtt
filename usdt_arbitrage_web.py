@@ -1,4 +1,3 @@
-
 import os
 import time
 import ccxt
@@ -20,10 +19,10 @@ kucoin = ccxt.kucoin()
 okx.load_markets()
 kucoin.load_markets()
 
-print("✅ OKX 支援的幣種（前10個）:", list(okx.symbols)[:10])
-print("✅ KuCoin 支援的幣種（前10個）:", list(kucoin.symbols)[:10])
+print("✅ OKX 支援幣種（前10）:", list(okx.symbols)[:10])
+print("✅ KuCoin 支援幣種（前10）:", list(kucoin.symbols)[:10])
 
-# 傳送測試訊息到 Telegram
+# 傳送訊息
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": message}
@@ -33,15 +32,17 @@ def send_telegram(message):
     except Exception as e:
         print("❌ 發送 Telegram 失敗:", e)
 
+# 發送啟動訊息
 send_telegram("🚀 Telegram 測試訊息：Bot 已上線，準備套利監控中。")
 
-# 套利主邏輯（含手續費）
+# 抓報價
 def get_price(exchange, symbol):
     ticker = exchange.fetch_ticker(symbol)
     return ticker['bid'], ticker['ask']
 
+# 主套利邏輯
 def monitor_arbitrage():
-    FEE_RATE = 0.001
+    FEE_RATE = 0.001  # 假設雙邊各 0.1%
 
     while True:
         try:
@@ -70,7 +71,7 @@ def monitor_arbitrage():
 
         time.sleep(15)
 
-# Flask Web
+# Flask Web 假伺服器
 app = Flask(__name__)
 
 @app.route("/")
