@@ -12,7 +12,7 @@ load_dotenv()
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 SYMBOL = os.getenv("ARBITRAGE_SYMBOL", "BTC/USDT")
-THRESHOLD = float(os.getenv("ARBITRAGE_THRESHOLD", "2.0"))
+THRESHOLD = float(os.getenv("ARBITRAGE_THRESHOLD", "0.5"))
 
 # 初始化 OKX 與 KuCoin
 okx = ccxt.okx()
@@ -20,20 +20,28 @@ kucoin = ccxt.kucoin()
 okx.load_markets()
 kucoin.load_markets()
 
+print("✅ OKX 支援的幣種（前10個）:", list(okx.symbols)[:10])
+print("✅ KuCoin 支援的幣種（前10個）:", list(kucoin.symbols)[:10])
+
+# 傳送測試訊息到 Telegram
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": message}
     try:
         requests.post(url, data=payload)
+        print("✅ 測試訊息已送出")
     except Exception as e:
-        print("❌ 發送 Telegram 訊息失敗:", e)
+        print("❌ 發送 Telegram 失敗:", e)
 
+send_telegram("🚀 Telegram 測試訊息：Bot 已上線，準備套利監控中。")
+
+# 套利主邏輯（含手續費）
 def get_price(exchange, symbol):
     ticker = exchange.fetch_ticker(symbol)
     return ticker['bid'], ticker['ask']
 
 def monitor_arbitrage():
-    FEE_RATE = 0.001  # 每邊 0.1% 手續費
+    FEE_RATE = 0.001
 
     while True:
         try:
@@ -46,7 +54,7 @@ def monitor_arbitrage():
                 diff = sell_price - buy_price
                 profit_ratio = (diff / buy_price) * 100
 
-                print(f"[套利監控] KuCoin 買(含費): {buy_price:.2f} / OKX 賣(含費): {sell_price:.2f} → 價差: {diff:.2f} USDT | 利潤率: {profit_ratio:.2f}%")
+                print(f"[DEBUG] KuCoin 買(含費): {buy_price:.2f} / OKX 賣(含費): {sell_price:.2f} → 價差: {diff:.2f} USDT | 利潤率: {profit_ratio:.2f}%")
 
                 if diff > THRESHOLD:
                     msg = (
@@ -62,12 +70,12 @@ def monitor_arbitrage():
 
         time.sleep(15)
 
-# Flask Web Server
+# Flask Web
 app = Flask(__name__)
 
 @app.route("/")
 def index():
-    return f"{SYMBOL} Arbitrage Monitor Running | Threshold = {THRESHOLD} USDT (含 0.1% 手續費)"
+    return f"{SYMBOL} Arbitrage Debug Bot Running"
 
 if __name__ == "__main__":
     threading.Thread(target=monitor_arbitrage, daemon=True).start()
