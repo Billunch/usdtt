@@ -1,0 +1,5 @@
+ccxt
+flask
+requests
+python-dotenv
+schedule
