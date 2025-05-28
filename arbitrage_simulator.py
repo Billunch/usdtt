@@ -1,4 +1,5 @@
 # 你的主程式將在此處填入（略，前面已生成）import os
+import os
 import time
 import ccxt
 import requests
